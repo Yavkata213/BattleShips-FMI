@@ -27,6 +27,8 @@ void printStartingMenu();
 
 void printDifficultyMenu();
 
+void clearConsole();
+
 int main() {
     srand(time(0));
     //1. Choose to load/start new game, load - skip to 5
@@ -43,28 +45,33 @@ int main() {
     int choice = 0;
     cin >> choice;
 
+    clearConsole();
+
     char computerBoard[15][15];
     char playerBoard[15][15];
     
     int boardSize = 0;
     bool isPlayerTurn;
 
-    //TODO: load game from file
+    // Load game from file
     if (choice == 2) {
         loadGameFromFile(computerBoard, playerBoard, boardSize, isPlayerTurn);
 
         if (boardSize == 0) {
-            cout << "No save present. Starting new game..." << endl;
+            cout << "Starting new game..." << endl;
             choice = 1;
         }
     }
 
+    // Start new game
     if (choice == 1) {
         printDifficultyMenu();
         
         int difficultyChoice = 0;
 
         cin >> difficultyChoice;
+
+        clearConsole();
 
         switch(difficultyChoice) {
             case 1: boardSize = 10; 
@@ -82,6 +89,8 @@ int main() {
         cout << "Would you like manual input? (1 - Yes, 0 - No): ";
 
         cin >> manualPlayerInput;
+
+        clearConsole();
         
         for (int i = 0; i < 15; i++) {
             for (int j = 0; j < 15; j++) {
@@ -97,7 +106,7 @@ int main() {
 
     // Game loop
     while (!isGameOver) {
-        system("cls"); 
+        clearConsole();
 
         printUI(computerBoard, playerBoard, boardSize);
         
@@ -122,10 +131,10 @@ void saveGameStateToFile(char computerBoard[15][15], char playerBoard[15][15], i
     ofstream outFile("battleship_save.txt");
 
     if (outFile.is_open()) {
-        // 1. Save Game Configuration
+        // 1. Save game configuration
         outFile << boardSize << " " << isPlayerTurn << endl;
 
-        // 2. Save Computer Board
+        // 2. Save computer board
         for (int i = 0; i < boardSize; i++) {
             for (int j = 0; j < boardSize; j++) {
                 outFile << computerBoard[i][j] << " ";
@@ -133,7 +142,7 @@ void saveGameStateToFile(char computerBoard[15][15], char playerBoard[15][15], i
             outFile << endl;
         }
 
-        // 3. Save Player Board
+        // 3. Save player board
         for (int i = 0; i < boardSize; i++) {
             for (int j = 0; j < boardSize; j++) {
                 outFile << playerBoard[i][j] << " ";
@@ -151,12 +160,23 @@ void loadGameFromFile(char computerBoard[15][15], char playerBoard[15][15], int&
     ifstream inFile("battleship_save.txt");
 
     if (inFile.is_open()) {
-        // 1. Load Game Configuration
+        // 1. Load game configuration
         inFile >> boardSize >> isPlayerTurn;
 
-        // 2. Load Computer Board
-        // 3. Load Player Board
-        
+        // 2. Load computer board
+        for (int i = 0; i < boardSize; i++) {
+            for (int j = 0; j < boardSize; j++) {
+                inFile >> computerBoard[i][j];
+            }
+        }
+
+        // 3. Load player board
+        for (int i = 0; i < boardSize; i++) {
+            for (int j = 0; j < boardSize; j++) {
+                inFile >> playerBoard[i][j];
+            }
+        }
+
         inFile.close();
     } else {
         cout << "No save point found." << endl;
@@ -226,6 +246,7 @@ void automaticallyFillBoard(char board[15][15], int boardSize) {
 void startNewGame(char computerBoard[15][15], char playerBoard[15][15], int boardSize, bool manualInput, bool isPlayerTurn) {
     isPlayerTurn = rand() % 2;
 
+    // Generate computer board
     automaticallyFillBoard(computerBoard, boardSize);
 
     if (!manualInput) {
@@ -233,6 +254,10 @@ void startNewGame(char computerBoard[15][15], char playerBoard[15][15], int boar
     } 
     else {
         //TODO: manual ship input, example: 0(first coord) 2(second coord) 0/1/true/false(is horizontal); validate placement
+        for (int i = 0; i < SHIPS_COUNT; i++)
+        {
+            
+        }
     }
 }
 
@@ -298,4 +323,8 @@ void printDifficultyMenu() {
     cout << "2. Rough Seas (12x12)" << endl;
     cout << "3. Storm of Steel (15x15)" << endl;
     cout << "Choose: ";
+}
+
+void clearConsole() {
+    system("cls");
 }
