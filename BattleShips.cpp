@@ -7,25 +7,36 @@
 using namespace std;
 
 const int SHIPS_COUNT = 10;
-const int SHIP_SIZES[SHIPS_COUNT] = {4, 3, 3, 2, 2, 2, 1, 1, 1, 1};
+const int MAX_BOARD_SIZE = 15;
+const int SHIP_SIZES[SHIPS_COUNT] = { 4, 3, 3, 2, 2, 2, 1, 1, 1, 1 };
 
-void saveGameStateToFile(char[15][15], char[15][15], int, bool);
+void initializeGame(char computerBoard[MAX_BOARD_SIZE][MAX_BOARD_SIZE], char playerBoard[MAX_BOARD_SIZE][MAX_BOARD_SIZE], int& boardSize, bool& isPlayerTurn);
 
-void loadGameFromFile(char[15][15], char[15][15], int&, bool&);
+void playOutGame(char computerBoard[MAX_BOARD_SIZE][MAX_BOARD_SIZE], char playerBoard[MAX_BOARD_SIZE][MAX_BOARD_SIZE], int boardSize, bool isPlayerTurn);
 
-void startNewGame(char[15][15], char[15][15], int, bool, bool);
+bool handlePlayerTurn(char computerBoard[MAX_BOARD_SIZE][MAX_BOARD_SIZE], int boardSize, bool& isGameOver);
 
-bool isValidPlacement(char[15][15], int, int, int, int, bool);
+bool handleComputerTurn(char playerBoard[MAX_BOARD_SIZE][MAX_BOARD_SIZE], int boardSize, bool& isGameOver);
 
-void placeShip(char[15][15], int, int, int, bool);
+void saveGameStateToFile(char computerBoard[MAX_BOARD_SIZE][MAX_BOARD_SIZE], char playerBoard[MAX_BOARD_SIZE][MAX_BOARD_SIZE], int boardSize, bool isPlayerTurn);
 
-void automaticallyFillBoard(char[15][15], int);
+void loadGameFromFile(char computerBoard[MAX_BOARD_SIZE][MAX_BOARD_SIZE], char playerBoard[MAX_BOARD_SIZE][MAX_BOARD_SIZE], int& boardSize, bool& isPlayerTurn);
 
-bool checkLoss(char[15][15], int boardSize);
+void startNewGame(char computerBoard[MAX_BOARD_SIZE][MAX_BOARD_SIZE], char playerBoard[MAX_BOARD_SIZE][MAX_BOARD_SIZE], int boardSize, bool manualInput, bool isPlayerTurn);
 
-void printUI(char[15][15], char[15][15], int);
+bool isValidPlacement(char board[MAX_BOARD_SIZE][MAX_BOARD_SIZE], int boardSize, int shipLength, int row, int col, bool isHorizontal);
 
-void printBoard(char[15][15], int);
+void placeShip(char board[MAX_BOARD_SIZE][MAX_BOARD_SIZE], int row, int col, int shipLength, bool isHorizontal);
+
+void automaticallyFillBoard(char board[MAX_BOARD_SIZE][MAX_BOARD_SIZE], int boardSize);
+
+bool checkLoss(char board[MAX_BOARD_SIZE][MAX_BOARD_SIZE], int boardSize);
+
+void printUI(char computerBoard[MAX_BOARD_SIZE][MAX_BOARD_SIZE], char playerBoard[MAX_BOARD_SIZE][MAX_BOARD_SIZE], int boardSize);
+
+void printBoard(char board[15][15], int boardSize);
+
+void printBoardTopIndexes(int boardSize);
 
 void printStartingMenu();
 
@@ -33,38 +44,45 @@ void printDifficultyMenu();
 
 void clearConsole();
 
-void inputNumber(int&, const char*);
+void inputNumber(int& number, const char* input);
 
-void inputBool(bool&, const char*);
+void inputBool(bool& boolean, const char* input);
 
-bool stringEquals(const char*, const char*);
+bool stringEquals(const char* firstString, const char* secondString);
 
 int main() {
     srand(time(0));
-    //1. Choose to load/start new game, load - skip to 5
-    //2. Choose difficulty: 
-    //      - Calm Waters (дъска 10x10)
-    //      - Rough Seas (дъска 12x12)
-    //      - Storm of Steel (дъска 15x15)
-    //3. Fill computer board
-    //4. Fill player board
-    //5. Play out game
+
+    char computerBoard[15][15];
+    char playerBoard[15][15];
+
+    int boardSize = 0;
+    bool isPlayerTurn = true;
+
+    initializeGame(computerBoard, playerBoard, boardSize, isPlayerTurn);
+
+    playOutGame(computerBoard, playerBoard, boardSize, isPlayerTurn);
+}
+
+void initializeGame(char computerBoard[MAX_BOARD_SIZE][MAX_BOARD_SIZE], char playerBoard[MAX_BOARD_SIZE][MAX_BOARD_SIZE], int& boardSize, bool& isPlayerTurn) {
+   //1. Choose to load/start new game, load - skip to 5
+   //2. Choose difficulty: 
+   //      - Calm Waters (дъска 10x10)
+   //      - Rough Seas (дъска 12x12)
+   //      - Storm of Steel (дъска 15x15)
+   //3. Fill computer board
+   //4. Fill player board
+   //5. Play out game
 
     printStartingMenu();
 
     int choice = 0;
 
-    while (choice != 1 && choice != 2) {
+    do {
         inputNumber(choice, "choice");
-    }
-    
-    clearConsole();
+    } while (choice != 1 && choice != 2);
 
-    char computerBoard[15][15];
-    char playerBoard[15][15];
-    
-    int boardSize = 0;
-    bool isPlayerTurn = true;
+    clearConsole();
 
     // Load game from file
     if (choice == 2) {
@@ -80,23 +98,23 @@ int main() {
     // Start new game
     if (choice == 1) {
         printDifficultyMenu();
-        
+
         int difficultyChoice = 0;
-        while (difficultyChoice < 1 || difficultyChoice > 3) {
+        do {
             inputNumber(difficultyChoice, "difficulty");
-        }
+        } while (difficultyChoice < 1 || difficultyChoice > 3);
 
         clearConsole();
 
-        switch(difficultyChoice) {
-            case 1: boardSize = 10; 
-                break;
-            case 2: boardSize = 12; 
-                break;
-            case 3: boardSize = 15; 
-                break;
-            default: boardSize = 10; 
-                break;
+        switch (difficultyChoice) {
+        case 1: boardSize = 10;
+            break;
+        case 2: boardSize = 12;
+            break;
+        case 3: boardSize = 15;
+            break;
+        default: boardSize = 10;
+            break;
         }
 
         bool manualPlayerInput = false;
@@ -106,9 +124,9 @@ int main() {
         inputBool(manualPlayerInput, "input");
 
         clearConsole();
-        
-        for (int i = 0; i < 15; i++) {
-            for (int j = 0; j < 15; j++) {
+
+        for (int i = 0; i < MAX_BOARD_SIZE; i++) {
+            for (int j = 0; j < MAX_BOARD_SIZE; j++) {
                 playerBoard[i][j] = '~';
                 computerBoard[i][j] = '~';
             }
@@ -116,7 +134,9 @@ int main() {
 
         startNewGame(computerBoard, playerBoard, boardSize, manualPlayerInput, isPlayerTurn);
     }
+}
 
+void playOutGame(char computerBoard[MAX_BOARD_SIZE][MAX_BOARD_SIZE], char playerBoard[MAX_BOARD_SIZE][MAX_BOARD_SIZE], int boardSize, bool isPlayerTurn) {
     bool isGameOver = false;
 
     // Game loop
@@ -124,106 +144,117 @@ int main() {
         clearConsole();
 
         printUI(computerBoard, playerBoard, boardSize);
-        
+
         saveGameStateToFile(computerBoard, playerBoard, boardSize, isPlayerTurn);
 
         if (isPlayerTurn) {
-            cout << "Your turn! Enter coordinates" << endl;
-            int r, c;
-            
-            cout << "Row: ";
-            inputNumber(r, "row");
-            cout << "Col: ";
-            inputNumber(c, "column");
-
-            r--;
-            c--;
-
-            // Validation, if invalid retry
-            if (r < 0 || r >= boardSize || c < 0 || c >= boardSize) {
-                cout << "Invalid coordinates! Try again." << endl;
-
-                Sleep(1500);
-
-                continue;
-            }
-            if (computerBoard[r][c] == 'X' || computerBoard[r][c] == 'o') {
-                cout << "You already shot there! Try again." << endl;
-
-                Sleep(1500);
-
-                continue;
-            }
-
-            // Shooting logic
-            if (computerBoard[r][c] == '#') {
-                computerBoard[r][c] = 'X';            
-                if (checkLoss(computerBoard, boardSize)) {
-                    cout << "\nCongratulations! You won!" << endl;
-                    isGameOver = true;
-                    break;
-                }
-                cout << "HIT! You get another turn." << endl;
-                Sleep(1500);
-                continue;
-            }
-            else {
-                computerBoard[r][c] = 'o';
-                cout << "Miss." << endl;
-            }
-            Sleep(1500);
-        } 
-        else {
-            // Computer turn logic
-            cout << "\n[COMPUTER TURN]" << endl;
-            cout << "Computer is thinking..." << endl;
-
-            Sleep(1500);
-
-            bool validShot = false;
-            bool isTargetShip = false;
-            do {
-                int r = rand() % boardSize;
-                int c = rand() % boardSize;
-
-                if (playerBoard[r][c] != 'X' && playerBoard[r][c] != 'o') {
-                    validShot = true;
-                    if (playerBoard[r][c] == '#') {
-                        playerBoard[r][c] = 'X';
-                        cout << "Computer HIT at " << r+1 << " " << c+1 << "!" << endl;
-                        if (checkLoss(playerBoard, boardSize)) {
-                            cout << "Game Over! Computer wins." << endl;
-                            isGameOver = true;
-                        }
-                        // Computer keeps turn
-                        isTargetShip = true;
-                    } 
-                    else {
-                        playerBoard[r][c] = 'o';
-                        cout << "Computer MISSED at " << r+1 << " " << c+1 << "." << endl;
-                        Sleep(1500);
-                    }
-                }
-            } while (!validShot);
-
-            if (isTargetShip) {
-                Sleep(1500);
+            bool keepTurn = handlePlayerTurn(computerBoard, boardSize, isGameOver);
+            if (keepTurn) {
                 continue;
             }
         }
-        
+        else {
+            // Computer turn logic
+            bool keepTurn = handleComputerTurn(playerBoard, boardSize, isGameOver);
+            if (keepTurn) {
+                continue;
+            }
+        }
+
         if (!isGameOver) {
-            isPlayerTurn = !isPlayerTurn;  
+            isPlayerTurn = !isPlayerTurn;
         }
     }
     remove("battleship_save.txt");
     system("pause");
-
-    clearConsole();
-    main();
 }
 
-void saveGameStateToFile(char computerBoard[15][15], char playerBoard[15][15], int boardSize, bool isPlayerTurn) {
+bool handlePlayerTurn(char computerBoard[MAX_BOARD_SIZE][MAX_BOARD_SIZE], int boardSize, bool& isGameOver) {
+    cout << "Your turn! Enter coordinates" << endl;
+
+    int row = 0, col = 0;
+
+    cout << "Row: ";
+    do {
+        inputNumber(row, "row");
+    } while (row < 1 && row >= boardSize);
+
+    cout << "Col: ";
+    do {
+        inputNumber(col, "column");
+    } while (col < 1 && row >= boardSize);
+
+    row--; col--;
+
+    // Validation, if invalid retry
+    char computerTile = computerBoard[row][col];
+
+    if (computerTile == 'X' || computerTile == 'o') {
+        cout << "You already shot there! Try again." << endl;
+
+        Sleep(1500);
+
+        return true;
+    }
+
+    // Shooting logic
+    if (computerTile == '#') {
+        computerBoard[row][col] = 'X';
+        if (checkLoss(computerBoard, boardSize)) {
+            cout << "\nCongratulations! You won!" << endl;
+            isGameOver = true;
+            return false;
+        }
+        cout << "HIT! You get another turn." << endl;
+        Sleep(1500);
+        return true;
+    }
+    else {
+        computerBoard[row][col] = 'o';
+        cout << "Miss." << endl;
+    }
+    Sleep(1500);
+    return false;
+}
+
+bool handleComputerTurn(char playerBoard[MAX_BOARD_SIZE][MAX_BOARD_SIZE], int boardSize, bool& isGameOver) {
+    cout << "\n[COMPUTER TURN]" << endl;
+    cout << "Computer is thinking..." << endl;
+
+    Sleep(1500);
+
+    bool validShot = false;
+    bool isTargetShip = false;
+    do {
+        int row = rand() % boardSize;
+        int col = rand() % boardSize;
+
+        char playerTile = playerBoard[row][col];
+        if (playerTile != 'X' && playerTile != 'o') {
+            validShot = true;
+            if (playerTile == '#') {
+                playerBoard[row][col] = 'X';
+                cout << "Computer HIT at " << row + 1 << " " << col + 1 << "!" << endl;
+                if (checkLoss(playerBoard, boardSize)) {
+                    cout << "Game Over! Computer wins." << endl;
+                    isGameOver = true;
+                }
+                // Computer keeps turn
+                isTargetShip = true;
+            }
+            else {
+                playerBoard[row][col] = 'o';
+                cout << "Computer MISSED at " << row + 1 << " " << col + 1 << "." << endl;
+            }
+        }
+    } while (!validShot);
+
+    Sleep(1500);
+
+    return isTargetShip;
+}
+
+void saveGameStateToFile(char computerBoard[MAX_BOARD_SIZE][MAX_BOARD_SIZE], char playerBoard[MAX_BOARD_SIZE][MAX_BOARD_SIZE], int boardSize, bool isPlayerTurn) {
     ofstream outFile("battleship_save.txt");
 
     if (outFile.is_open()) {
@@ -250,7 +281,7 @@ void saveGameStateToFile(char computerBoard[15][15], char playerBoard[15][15], i
     }
 }
 
-void loadGameFromFile(char computerBoard[15][15], char playerBoard[15][15], int& boardSize, bool& isPlayerTurn) {
+void loadGameFromFile(char computerBoard[MAX_BOARD_SIZE][MAX_BOARD_SIZE], char playerBoard[MAX_BOARD_SIZE][MAX_BOARD_SIZE], int& boardSize, bool& isPlayerTurn) {
     ifstream inFile("battleship_save.txt");
 
     if (inFile.is_open()) {
@@ -272,32 +303,32 @@ void loadGameFromFile(char computerBoard[15][15], char playerBoard[15][15], int&
         }
 
         inFile.close();
-    } 
+    }
     else {
         cout << "No save point found." << endl;
         boardSize = 0;
     }
 }
 
-bool isValidPlacement(char board[15][15], int boardSize, int shipLength, int row, int col, bool isHorizontal) {
+bool isValidPlacement(char board[MAX_BOARD_SIZE][MAX_BOARD_SIZE], int boardSize, int shipLength, int row, int col, bool isHorizontal) {
     if (isHorizontal) {
         if (shipLength + col > boardSize) {
             return false;
         }
-    } 
+    }
     else {
         if (shipLength + row > boardSize) {
             return false;
         }
     }
 
-    for (int i = 0; i < shipLength; i++) 
+    for (int i = 0; i < shipLength; i++)
     {
         if (isHorizontal) {
             if (board[row][col + i] != '~') {
                 return false;
             }
-        } 
+        }
         else {
             if (board[row + i][col] != '~') {
                 return false;
@@ -308,18 +339,18 @@ bool isValidPlacement(char board[15][15], int boardSize, int shipLength, int row
     return true;
 }
 
-void placeShip(char board[15][15], int row, int col, int shipLength, bool isHorizontal) {
+void placeShip(char board[MAX_BOARD_SIZE][MAX_BOARD_SIZE], int row, int col, int shipLength, bool isHorizontal) {
     for (int i = 0; i < shipLength; i++) {
         if (isHorizontal) {
             board[row][col + i] = '#';
-        } 
+        }
         else {
             board[row + i][col] = '#';
         }
     }
 }
 
-void automaticallyFillBoard(char board[15][15], int boardSize) {
+void automaticallyFillBoard(char board[MAX_BOARD_SIZE][MAX_BOARD_SIZE], int boardSize) {
     for (int i = 0; i < SHIPS_COUNT; i++) {
         int shipLength = SHIP_SIZES[i];
         bool isPlaced = false;
@@ -338,7 +369,7 @@ void automaticallyFillBoard(char board[15][15], int boardSize) {
     }
 }
 
-bool checkLoss(char board[15][15], int boardSize) {
+bool checkLoss(char board[MAX_BOARD_SIZE][MAX_BOARD_SIZE], int boardSize) {
     for (int i = 0; i < boardSize; i++) {
         for (int j = 0; j < boardSize; j++) {
             if (board[i][j] == '#') {
@@ -351,7 +382,7 @@ bool checkLoss(char board[15][15], int boardSize) {
     return true;
 }
 
-void startNewGame(char computerBoard[15][15], char playerBoard[15][15], int boardSize, bool manualInput, bool isPlayerTurn) {
+void startNewGame(char computerBoard[MAX_BOARD_SIZE][MAX_BOARD_SIZE], char playerBoard[MAX_BOARD_SIZE][MAX_BOARD_SIZE], int boardSize, bool manualInput, bool isPlayerTurn) {
     isPlayerTurn = rand() % 2;
 
     // Automatically generate computer board
@@ -360,36 +391,35 @@ void startNewGame(char computerBoard[15][15], char playerBoard[15][15], int boar
     if (!manualInput) {
         // Automatically generate user board
         automaticallyFillBoard(playerBoard, boardSize);
-    } 
+    }
     else {
         // Manual input
         for (int i = 0; i < SHIPS_COUNT; i++) {
             int shipSize = SHIP_SIZES[i];
 
-            int row, col;
-            bool isHorizontal;
+            int row = 0, col = 0;
+            bool isHorizontal = false;
             do {
                 printBoard(playerBoard, boardSize);
 
                 cout << "Place a " << shipSize << " square long ship" << endl;
-                
+
                 cout << "Enter row (1 - " << boardSize << "): ";
-                while (row < 1 && row > boardSize) {
+                do {
                     inputNumber(row, "row");
-                }
+                } while (row < 1 && row > boardSize);
 
                 cout << "Enter column (1 - " << boardSize << "): ";
-                while (col < 1 && col > boardSize) {
+                do {
                     inputNumber(col, "column");
-                }
+                } while (col < 1 && col > boardSize);
 
                 if (shipSize != 1) {
-                    cout << "Will the ship be horizontal? (Yes/No | True/False | 1/0):";
+                    cout << "Will the ship be horizontal? (Yes/No | True/False | 1/0): ";
                     inputBool(isHorizontal, "horizontality");
-                }                
+                }
 
-                row--;
-                col--;
+                row--; col--;
 
                 clearConsole();
             } while (!isValidPlacement(playerBoard, boardSize, shipSize, row, col, isHorizontal));
@@ -399,25 +429,15 @@ void startNewGame(char computerBoard[15][15], char playerBoard[15][15], int boar
     }
 }
 
-void printUI(char computerBoard[15][15], char playerBoard[15][15], int boardSize) {
-    cout << "   ";
-    for (int col = 1; col <= boardSize; col++) {
-        if (col < 10) {
-            cout << " ";
-        }
-        cout << col << " ";
-    }
+void printUI(char computerBoard[MAX_BOARD_SIZE][MAX_BOARD_SIZE], char playerBoard[MAX_BOARD_SIZE][MAX_BOARD_SIZE], int boardSize) {
+    // Computer board indexes
+    printBoardTopIndexes(boardSize);
+    
+    // Player board indexes
+	printBoardTopIndexes(boardSize);
 
-    cout << "   ";
-    for (int col = 1; col <= boardSize; col++) {
-        if (col < 10){
-            cout << " ";            
-        }
-        cout << col << " ";
-    }
-    
     cout << endl;
-    
+
     for (int row = 0; row < boardSize; row++) {
         int rowNumber = row + 1;
 
@@ -425,7 +445,7 @@ void printUI(char computerBoard[15][15], char playerBoard[15][15], int boardSize
             cout << " ";
         }
         cout << rowNumber << " ";
-        
+
         // Computer Board (Ships which are not hit are not shown)
         for (int col = 0; col < boardSize; col++) {
             if (boardSize > 9) {
@@ -434,15 +454,16 @@ void printUI(char computerBoard[15][15], char playerBoard[15][15], int boardSize
             char tile = computerBoard[row][col];
             if (tile == '#') {
                 cout << "~ ";
-            } else {
+            }
+            else {
                 cout << tile << " ";
             }
         }
 
         cout << " | ";
-        
+
         // Player Board
-        for (int col = 0; col < boardSize; col++){
+        for (int col = 0; col < boardSize; col++) {
             if (boardSize > 9) {
                 cout << " ";
             }
@@ -452,7 +473,7 @@ void printUI(char computerBoard[15][15], char playerBoard[15][15], int boardSize
     }
 }
 
-void printBoard(char board[15][15], int boardSize) {
+void printBoardTopIndexes(int boardSize) {
     cout << "   ";
     for (int col = 1; col <= boardSize; col++) {
         if (col < 10) {
@@ -460,9 +481,13 @@ void printBoard(char board[15][15], int boardSize) {
         }
         cout << col << " ";
     }
+}
+
+void printBoard(char board[15][15], int boardSize) {
+    printBoardTopIndexes(boardSize);
 
     cout << endl;
-    
+
     for (int row = 0; row < boardSize; row++) {
         int rowNumber = row + 1;
 
@@ -477,7 +502,7 @@ void printBoard(char board[15][15], int boardSize) {
             }
             cout << board[row][col] << " ";
         }
-        
+
         cout << endl;
     }
 }
@@ -504,11 +529,11 @@ void clearConsole() {
 void inputNumber(int& number, const char* input) {
     while (true) {
         cin >> number;
+        cin.clear();
+        cin.ignore(10000, '\n');
         if (cin.fail()) {
-            cin.clear();
-            cin.ignore(10000, '\n');
             cout << "Invalid " << input << ", try again: ";
-        } 
+        }
         else {
             break;
         }
